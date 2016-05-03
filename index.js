@@ -8,47 +8,52 @@ app.use(passport.initialize());
 
 var jsonParser = bodyParser.json();
 
-app.get('/users', function(req, res) {
-    User.find({}).then(function(users) {
+app.get('/users', function (req, res) {
+    User.find({}).then(function (users) {
         res.json(users);
     });
 });
 
-app.post('/users', jsonParser, function(req, res) {
+app.post('/users', jsonParser, function (req, res) {
     var password = req.body.password;
-    bcrypt.genSalt(10, function(err, salt) {
-        if (err) return res.status(500).json({});
 
-        if (!req.body) {
-            return res.status(400).json({
-                message: "No request body"
-            });
+
+    if (!req.body) {
+        return res.status(400).json({
+            message: "No request body"
+        });
+    }
+
+    if (!('username' in req.body)) {
+        return res.status(422).json({
+            message: 'Missing field: username'
+        });
+    }
+
+    if (typeof req.body.username !== 'string') {
+        return res.status(422).json({
+            message: 'Incorrect field type: username'
+        });
+    }
+    if (!('password' in req.body)) {
+        return res.status(422).json({
+            message: 'Missing field: password'
+        });
+    }
+
+    if (typeof req.body.password !== 'string') {
+        return res.status(422).json({
+            message: 'Incorrect field type: password'
+        });
+    }
+
+    bcrypt.genSalt(10, function (err, salt) {
+        if (err) {
+            return res.status(500).json({message: 'Internal server error'});
         }
 
-        if (!('username' in req.body)) {
-            return res.status(422).json({
-                message: 'Missing field: username'
-            });
-        }
 
-        if (typeof req.body.username !== 'string') {
-            return res.status(422).json({
-                message: 'Incorrect field type: username'
-            });
-        }
-        if (!('password' in req.body)) {
-            return res.status(422).json({
-                message: 'Missing field: password'
-            });
-        }
-
-        if (typeof req.body.password !== 'string') {
-            return res.status(422).json({
-                message: 'Incorrect field type: password'
-            });
-        }
-
-        bcrypt.hash(password, salt, function(err, hash) {
+        bcrypt.hash(password, salt, function (err, hash) {
             if (err) return res.status(500).json({});
 
             var user = new User({
@@ -56,9 +61,9 @@ app.post('/users', jsonParser, function(req, res) {
                 password: hash
             });
 
-            user.save().then(function(user) {
+            user.save().then(function (user) {
                 res.location('/users/' + user._id).status(201).json({});
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log(err);
                 res.status(500).send({
                     message: 'Internal server error'
@@ -68,10 +73,10 @@ app.post('/users', jsonParser, function(req, res) {
     });
 });
 
-app.get('/users/:userId', function(req, res) {
+app.get('/users/:userId', function (req, res) {
     User.findOne({
         _id: req.params.userId
-    }).then(function(user) {
+    }).then(function (user) {
         if (!user) {
             res.status(404).json({
                 message: 'User not found'
@@ -79,7 +84,7 @@ app.get('/users/:userId', function(req, res) {
             return;
         }
         res.json(user);
-    }).catch(function(err) {
+    }).catch(function (err) {
         console.log(err);
         res.status(500).send({
             message: 'Internal server error'
@@ -87,7 +92,7 @@ app.get('/users/:userId', function(req, res) {
     });
 });
 
-app.put('/users/:userId', jsonParser, function(req, res) {
+app.put('/users/:userId', jsonParser, function (req, res) {
     if (!req.body) {
         return res.status(400).json({
             message: "No request body"
@@ -112,9 +117,9 @@ app.put('/users/:userId', jsonParser, function(req, res) {
         username: req.body.username
     }, {
         upsert: true
-    }).then(function(user) {
+    }).then(function (user) {
         res.status(200).json({});
-    }).catch(function(err) {
+    }).catch(function (err) {
         console.log(err);
         res.status(500).send({
             message: 'Internal server error'
@@ -122,10 +127,10 @@ app.put('/users/:userId', jsonParser, function(req, res) {
     });
 });
 
-app.delete('/users/:userId', function(req, res) {
+app.delete('/users/:userId', function (req, res) {
     User.findOneAndRemove({
         _id: req.params.userId
-    }).then(function(user) {
+    }).then(function (user) {
         if (!user) {
             res.status(404).json({
                 message: 'User not found'
@@ -133,7 +138,7 @@ app.delete('/users/:userId', function(req, res) {
             return;
         }
         res.status(200).json({});
-    }).catch(function(err) {
+    }).catch(function (err) {
         console.log(err);
         res.status(500).send({
             message: 'Internal server error'
@@ -142,7 +147,7 @@ app.delete('/users/:userId', function(req, res) {
 
 });
 
-app.get('/messages', function(req, res) {
+app.get('/messages', function (req, res) {
     var filter = {};
     if ('to' in req.query) {
         filter.to = req.query.to;
@@ -153,12 +158,12 @@ app.get('/messages', function(req, res) {
     Message.find(filter)
         .populate('from')
         .populate('to')
-        .then(function(messages) {
+        .then(function (messages) {
             res.json(messages);
         });
 });
 
-app.post('/messages', jsonParser, function(req, res) {
+app.post('/messages', jsonParser, function (req, res) {
     if (!req.body) {
         return res.status(400).json({
             message: "No request body"
@@ -214,7 +219,7 @@ app.post('/messages', jsonParser, function(req, res) {
         _id: message.to
     });
 
-    return Promise.all([findFrom, findTo]).then(function(results) {
+    return Promise.all([findFrom, findTo]).then(function (results) {
         if (!results[0]) {
             res.status(422).json({
                 message: 'Incorrect field value: from'
@@ -228,13 +233,13 @@ app.post('/messages', jsonParser, function(req, res) {
         } else {
             return message.save();
         }
-    }).then(function(user) {
+    }).then(function (user) {
         if (!user) {
             // Incorrect field values - handled above.
             return;
         }
         res.location('/messages/' + message._id).status(201).json({});
-    }).catch(function(err) {
+    }).catch(function (err) {
         console.log(err);
         res.status(500).send({
             message: 'Internal server error'
@@ -242,13 +247,13 @@ app.post('/messages', jsonParser, function(req, res) {
     });
 });
 
-app.get('/messages/:messageId', function(req, res) {
+app.get('/messages/:messageId', function (req, res) {
     Message.findOne({
             _id: req.params.messageId
         })
         .populate('from')
         .populate('to')
-        .then(function(message) {
+        .then(function (message) {
             if (!message) {
                 res.status(404).json({
                     message: 'Message not found'
@@ -256,15 +261,15 @@ app.get('/messages/:messageId', function(req, res) {
                 return;
             }
             res.json(message);
-        }).catch(function(err) {
-            console.log(err);
-            res.status(500).send({
-                message: 'Internal server error'
-            });
+        }).catch(function (err) {
+        console.log(err);
+        res.status(500).send({
+            message: 'Internal server error'
         });
+    });
 });
 
-mongoose.connect('mongodb://localhost/auth').then(function() {
+mongoose.connect('mongodb://localhost/auth').then(function () {
     app.listen(8080);
 });
 
