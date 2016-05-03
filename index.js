@@ -15,34 +15,55 @@ app.get('/users', function(req, res) {
 });
 
 app.post('/users', jsonParser, function(req, res) {
-    if (!req.body) {
-        return res.status(400).json({
-            message: "No request body"
-        });
-    }
+    var password = req.body.password;
+    bcrypt.genSalt(10, function(err, salt) {
+        if (err) return res.status(500).json({});
 
-    if (!('username' in req.body)) {
-        return res.status(422).json({
-            message: 'Missing field: username'
-        });
-    }
+        if (!req.body) {
+            return res.status(400).json({
+                message: "No request body"
+            });
+        }
 
-    if (typeof req.body.username !== 'string') {
-        return res.status(422).json({
-            message: 'Incorrect field type: username'
-        });
-    }
+        if (!('username' in req.body)) {
+            return res.status(422).json({
+                message: 'Missing field: username'
+            });
+        }
 
-    var user = new User({
-        username: req.body.username
-    });
+        if (typeof req.body.username !== 'string') {
+            return res.status(422).json({
+                message: 'Incorrect field type: username'
+            });
+        }
+        if (!('password' in req.body)) {
+            return res.status(422).json({
+                message: 'Missing field: password'
+            });
+        }
 
-    user.save().then(function(user) {
-        res.location('/users/' + user._id).status(201).json({});
-    }).catch(function(err) {
-        console.log(err);
-        res.status(500).send({
-            message: 'Internal server error'
+        if (typeof req.body.password !== 'string') {
+            return res.status(422).json({
+                message: 'Incorrect field type: password'
+            });
+        }
+
+        bcrypt.hash(password, salt, function(err, hash) {
+            if (err) return res.status(500).json({});
+
+            var user = new User({
+                username: req.body.username,
+                password: hash
+            });
+
+            user.save().then(function(user) {
+                res.location('/users/' + user._id).status(201).json({});
+            }).catch(function(err) {
+                console.log(err);
+                res.status(500).send({
+                    message: 'Internal server error'
+                });
+            });
         });
     });
 });
@@ -199,15 +220,13 @@ app.post('/messages', jsonParser, function(req, res) {
                 message: 'Incorrect field value: from'
             });
             return null;
-        }
-        else if (!results[1]) {
+        } else if (!results[1]) {
             res.status(422).json({
                 message: 'Incorrect field value: to'
             });
             return null;
-        }
-        else {
-            return message.save()
+        } else {
+            return message.save();
         }
     }).then(function(user) {
         if (!user) {
@@ -225,26 +244,29 @@ app.post('/messages', jsonParser, function(req, res) {
 
 app.get('/messages/:messageId', function(req, res) {
     Message.findOne({
-        _id: req.params.messageId
-    })
-    .populate('from')
-    .populate('to')
-    .then(function(message) {
-        if (!message) {
-            res.status(404).json({
-                message: 'Message not found'
+            _id: req.params.messageId
+        })
+        .populate('from')
+        .populate('to')
+        .then(function(message) {
+            if (!message) {
+                res.status(404).json({
+                    message: 'Message not found'
+                });
+                return;
+            }
+            res.json(message);
+        }).catch(function(err) {
+            console.log(err);
+            res.status(500).send({
+                message: 'Internal server error'
             });
-            return;
-        }
-        res.json(message);
-    }).catch(function(err) {
-        console.log(err);
-        res.status(500).send({
-            message: 'Internal server error'
         });
-    });
 });
 
 mongoose.connect('mongodb://localhost/auth').then(function() {
     app.listen(8080);
 });
+
+// COMMENT!!
+///afgajfgagf;
